@@ -57,18 +57,18 @@ class Image_Crate_Scripts {
 		}
 
 		$suffix = SCRIPT_DEBUG ? '' : '.min';
-		wp_register_script( 'image-crate', IC_URL . "/assets/js/image-crate-admin.js", array('media-views'), '0.1.0', true );
-
-		wp_localize_script(
-			'image-crate',
-			'imagecrate', apply_filters( 'image_crate_controller_title', array(
-				'page_title'     => __( 'Image Crate', 'image-crate' ),
-				'default_search' => Image_Crate_Api::get_default_query(),
-				'nonce'          => wp_create_nonce( 'image_crate' )
-			) )
-		);
-
-		wp_enqueue_script( 'image-crate' );
+//		wp_register_script( 'image-crate', IC_URL . "/assets/js/image-crate-admin.js", array('media-views'), '0.1.0', true );
+//
+//		wp_localize_script(
+//			'image-crate',
+//			'imagecrate', apply_filters( 'image_crate_controller_title', array(
+//				'page_title'     => __( 'Image Crate', 'image-crate' ),
+//				'default_search' => Image_Crate_Api::get_default_query(),
+//				'nonce'          => wp_create_nonce( 'image_crate' )
+//			) )
+//		);
+//
+//		wp_enqueue_script( 'image-crate' );
 	}
 
 	/**
