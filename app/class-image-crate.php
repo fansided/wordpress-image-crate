@@ -8,6 +8,7 @@ use ImageCrate\Admin\Admin_Init;
 use ImageCrate\Admin\Scripts;
 use ImageCrate\Admin\Api;
 use ImageCrate\Admin\Ajax;
+use ImageCrate\Admin\Providers\Provider_Image_Exchange;
 
 class Init extends Abstract_Plugin {
 
@@ -57,7 +58,6 @@ class Init extends Abstract_Plugin {
 
 	/**
 	 * Initialize the plugin - for public (front end)
-	 * todo: set up extensible image data providers
 	 *
 	 * @since   0.1
 	 * @return  void
@@ -65,8 +65,9 @@ class Init extends Abstract_Plugin {
 	public function init() {
 		do_action( get_called_class() . '_before_init' );
 
-		$provider = new Api();
-		new Ajax( $provider );
+		$this->init_providers();
+		//$provider = new Provider_Image_Exchange();
+		//new Ajax( $provider );
 
 		do_action( get_called_class() . '_after_init' );
 	}
@@ -87,12 +88,23 @@ class Init extends Abstract_Plugin {
 	}
 
 	/**
+	 * Load up the various providers
+	 */
+	public function init_providers() {
+		$files = glob( dirname( __FILE__ ) . '/admin/providers/class-provider-*.php' );
+		foreach ( $files as $file ) {
+			$class_name = static::filepath_to_classname( $file, $this->installed_dir, __NAMESPACE__ );
+			new $class_name;
+		}
+	}
+
+	/**
 	 * Enforce that the plugin prepare any defines or globals in a standard location.
 	 *
 	 * //* @return null
 	 */
 	protected function defines_and_globals() {
-		define( 'IMAGE_CRATE_VERSION', '1.1.1' );
+		define( 'IMAGE_CRATE_VERSION', '3.0.0' );
 		define( 'IMAGE_CRATE_NAME', plugin_basename( __FILE__ ) );
 		define( 'IMAGE_CRATE_URL', plugins_url( basename( __DIR__ ) ) );
 		define( 'IMAGE_CRATE_PATH', dirname( __FILE__ ) );
