@@ -56,9 +56,8 @@ class Scripts {
 		}
 
 		$suffix = SCRIPT_DEBUG ? '' : '.min';
-		wp_register_script( 'image-crate', plugins_url('/wordpress-image-crate/app/assets/js/image-crate-admin' . $suffix . '.js'), array('media-views'), '0.1.0', true );
+		wp_register_script( 'image-crate', plugins_url('/wordpress-image-crate/app/assets/js/image-crate' . $suffix . '.js'), array('media-views'), '3.0.0', true );
 
-		// todo: hook here to add multiple controllers
 		wp_localize_script(
 			'image-crate',
 			'imagecrate', apply_filters( 'image_crate_controller_title', array(
