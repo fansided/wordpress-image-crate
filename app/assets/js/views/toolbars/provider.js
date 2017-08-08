@@ -23,6 +23,8 @@ var ProviderToolbar = function (view) {
         click: function () {
             var selection = state.get('selection');
 
+            // todo: download image here
+
             controller.close();
             state.trigger('insert', selection).reset();
         }

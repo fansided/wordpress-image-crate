@@ -49,16 +49,17 @@ StockPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
         }).render())
     },
 
-    createUploader: function () {
-        this.uploader = new NoResults({
-            controller: this.controller,
-            status: false,
-            message: 'Sorry, No images were found.'
-        });
-
-        this.uploader.hide();
-        this.views.add(this.uploader);
-    },
+    // todo: clean this up and review entire file
+    // createUploader: function () {
+    //     this.uploader = new NoResults({
+    //         controller: this.controller,
+    //         status: false,
+    //         message: 'Sorry, No images were found.'
+    //     });
+    //
+    //     this.uploader.hide();
+    //     this.views.add(this.uploader);
+    // },
 });
 
 module.exports = StockPhotosBrowser;

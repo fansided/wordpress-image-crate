@@ -12,21 +12,16 @@ ImageExchangeController = Library.extend({
     defaults: _.defaults({
         id: 'image-exchange',
         title: 'Image Exchange',
-        priority: 220,
-        content: 'upload',
-        router: 'browse',
+        priority: 320,
+        content: 'provider',
+        router: 'image-provider',
         toolbar: 'image-provider',
-        button: 'Download FanSided Image'
-    }, wp.media.controller.Library.prototype.defaults),
+        button: 'Download FanSided Image',
+        library: wp.media.query({ provider: 'image-exchange' })
+    }, Library.prototype.defaults ),
 
-    initialize: function () {
-        if (!this.get('library')) {
-            this.set('library', wp.media.query({
-                    provider: 'image-exchange'
-                })
-            );
-        }
-        wp.media.controller.Library.prototype.initialize.apply(this, arguments);
+    activate: function () {
+        this.set( 'mode', this.id );
     }
 });
 
