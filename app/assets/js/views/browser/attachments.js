@@ -8,27 +8,19 @@ var ImageCrateSearch = require('./search.js'),
     NoResults = require('./no-results.js'),
     VerticalsFilter = require('./verticals-filter.js'),
     coreAttachmentsInitialize  = wp.media.view.AttachmentsBrowser.prototype.initialize,
-    StockPhotosBrowser;
+    ProviderPhotosBrowser;
 
-StockPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
-    tagName: 'div',
-    className: 'image-crate attachments-browser',
-
-    defaults: _.defaults({
-        filters: false,
-        search: false,
-        date: false,
-        display: false,
-        sidebar: true,
-    }, wp.media.view.AttachmentsBrowser.prototype.defaults),
+ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
 
     initialize: function () {
         coreAttachmentsInitialize.apply(this, arguments);
+
         this.createToolBar();
-        this.createUploader();
+        // this.createUploader();
     },
 
     createToolBar: function() {
+
         this.toolbar.set('VerticalsFilterLabel', new wp.media.view.Label({
             value: 'Verticals Label',
             attributes: {
@@ -36,17 +28,20 @@ StockPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
             },
             priority: -75
         }).render());
+
         this.toolbar.set('VerticalsFilter', new VerticalsFilter({
             controller: this.controller,
             model: this.collection.props,
             priority: -75
         }).render());
 
-        this.toolbar.set('search', new ImageCrateSearch({
-            controller: this.controller,
-            model: this.collection.props,
-            priority: 60
-        }).render())
+        this.views.add(this.toolbar);
+
+        // this.toolbar.set('search', new ImageCrateSearch({
+        //     controller: this.controller,
+        //     model: this.collection.props,
+        //     priority: 60
+        // }).render())
     },
 
     // todo: clean this up and review entire file
@@ -62,4 +57,4 @@ StockPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
     // },
 });
 
-module.exports = StockPhotosBrowser;
+module.exports = ProviderPhotosBrowser;

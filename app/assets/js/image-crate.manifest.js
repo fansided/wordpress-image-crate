@@ -11,12 +11,11 @@
 		imagecrate.GettyImagesController = require('./controllers/getty-images.js');
 
 		//models
-        imagecrate.StockPhotoThumb = require('./views/browser/image-crate-photo.js'),
-        imagecrate.StockPhotosModel = require('./models/image-crate-photo-model.js'),
-        imagecrate.StockPhotoBrowser = require('./views/browser/image-crate-photos.js'),
+        imagecrate.ProviderAttachments = require('./models/attachments.js');
 
 		// views
 		imagecrate.ProviderToolbar = require('./views/toolbars/provider.js');
+        imagecrate.ProviderPhotosBrowser = require('./views/browser/attachments.js');
 
 		/**
 		 * Add controllers to the media modal Post Frame
@@ -45,28 +44,32 @@
 			},
 
             providerContent: function( contentRegion ) {
-                var state = this.state();
+                var state = this.state(),
+                    id = state.get('id'),
+                    collection = state.get('image_crate_photos'),
+                    selection = state.get('selection');
 
-                this.$el.removeClass('hide-toolbar');
+                if (_.isUndefined(collection)) {
+                    collection = new imagecrate.ProviderAttachments(
+                        null,
+                        {
+                            props: state.get('library').props.toJSON()
+                        }
+                    );
 
-                // Browse our library of attachments.
-                contentRegion.view = new imagecrate.StockPhotoBrowser({
+                    // Reference the state if needed later
+                    state.set('image_crate_photos', collection);
+                }
+
+                contentRegion.view = new imagecrate.ProviderPhotosBrowser({
+                    tagName: 'div',
+                    className: id + ' image-crate attachments-browser',
                     controller: this,
-                    collection: state.get('library'),
-                    selection: state.get('selection'),
+                    collection: collection,
+                    selection: selection,
                     model: state,
-                    sortable: state.get('sortable'),
-                    search: state.get('searchable'),
-                    filters: state.get('filterable'),
-                    date: state.get('date'),
-                    display: state.has('display') ? state.get('display') : state.get('displaySettings'),
-                    dragInfo: state.get('dragInfo'),
-
-                    idealColumnWidth: state.get('idealColumnWidth'),
-                    suggestedWidth: state.get('suggestedWidth'),
-                    suggestedHeight: state.get('suggestedHeight'),
-
-                    AttachmentView: imagecrate.StockPhotoThumb
+                    filters: true,
+                    search: true,
                 });
             },
 
@@ -78,7 +81,6 @@
                     }
                 });
             }
-
 		});
 	});
 })(jQuery);

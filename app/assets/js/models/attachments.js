@@ -6,9 +6,9 @@
  * @class
  * @augments wp.media.model.Attachments
  */
-var StockPhotosQuery = require('./image-crate-photos-query');
+var ProviderQuery = require('./query');
 
-var StockPhotos = wp.media.model.Attachments.extend({
+var ProviderAttachments = wp.media.model.Attachments.extend({
 
     initialize: function (models, options) {
         wp.media.model.Attachments.prototype.initialize.call(this, models, options);
@@ -19,9 +19,9 @@ var StockPhotos = wp.media.model.Attachments.extend({
         if ( this.props.get('query') ) {
             props = this.props.toJSON();
             props.cache = ( true !== refresh );
-            this.mirror( StockPhotosQuery.get( props ) );
+            this.mirror( ProviderQuery.get( props ) );
         }
     }
 });
 
-module.exports = StockPhotos;
+module.exports = ProviderAttachments;

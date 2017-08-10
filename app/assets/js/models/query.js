@@ -5,7 +5,7 @@
  *
  * @augments wp.media.model.Query
  */
-var StockPhotosQuery = wp.media.model.Query.extend({
+var ProviderQuery = wp.media.model.Query.extend({
 
         /**
          * Overrides wp.media.model.Query.sync
@@ -66,7 +66,7 @@ var StockPhotosQuery = wp.media.model.Query.extend({
              */
             return function (props, options) {
                 var someprops = props;
-                var Query = StockPhotosQuery,
+                var Query = ProviderQuery,
                     args = {},
                     query,
                     cache = !!props.cache || _.isUndefined(props.cache);
@@ -110,4 +110,4 @@ var StockPhotosQuery = wp.media.model.Query.extend({
         }())
     });
 
-module.exports = StockPhotosQuery;
+module.exports = ProviderQuery;

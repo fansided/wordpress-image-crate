@@ -70,12 +70,11 @@ module.exports = ImageExchangeController;
 		imagecrate.GettyImagesController = require('./controllers/getty-images.js');
 
 		//models
-        imagecrate.StockPhotoThumb = require('./views/browser/image-crate-photo.js'),
-        imagecrate.StockPhotosModel = require('./models/image-crate-photo-model.js'),
-        imagecrate.StockPhotoBrowser = require('./views/browser/image-crate-photos.js'),
+        imagecrate.ProviderAttachments = require('./models/attachments.js');
 
 		// views
 		imagecrate.ProviderToolbar = require('./views/toolbars/provider.js');
+        imagecrate.ProviderPhotosBrowser = require('./views/browser/attachments.js');
 
 		/**
 		 * Add controllers to the media modal Post Frame
@@ -104,28 +103,32 @@ module.exports = ImageExchangeController;
 			},
 
             providerContent: function( contentRegion ) {
-                var state = this.state();
+                var state = this.state(),
+                    id = state.get('id'),
+                    collection = state.get('image_crate_photos'),
+                    selection = state.get('selection');
 
-                this.$el.removeClass('hide-toolbar');
+                if (_.isUndefined(collection)) {
+                    collection = new imagecrate.ProviderAttachments(
+                        null,
+                        {
+                            props: state.get('library').props.toJSON()
+                        }
+                    );
 
-                // Browse our library of attachments.
-                contentRegion.view = new imagecrate.StockPhotoBrowser({
+                    // Reference the state if needed later
+                    state.set('image_crate_photos', collection);
+                }
+
+                contentRegion.view = new imagecrate.ProviderPhotosBrowser({
+                    tagName: 'div',
+                    className: id + ' image-crate attachments-browser',
                     controller: this,
-                    collection: state.get('library'),
-                    selection: state.get('selection'),
+                    collection: collection,
+                    selection: selection,
                     model: state,
-                    sortable: state.get('sortable'),
-                    search: state.get('searchable'),
-                    filters: state.get('filterable'),
-                    date: state.get('date'),
-                    display: state.has('display') ? state.get('display') : state.get('displaySettings'),
-                    dragInfo: state.get('dragInfo'),
-
-                    idealColumnWidth: state.get('idealColumnWidth'),
-                    suggestedWidth: state.get('suggestedWidth'),
-                    suggestedHeight: state.get('suggestedHeight'),
-
-                    AttachmentView: imagecrate.StockPhotoThumb
+                    filters: true,
+                    search: true,
                 });
             },
 
@@ -137,12 +140,11 @@ module.exports = ImageExchangeController;
                     }
                 });
             }
-
 		});
 	});
 })(jQuery);
 
-},{"./controllers/getty-images.js":1,"./controllers/image-exchange.js":2,"./models/image-crate-photo-model.js":4,"./views/browser/image-crate-photo.js":6,"./views/browser/image-crate-photos.js":7,"./views/toolbars/provider.js":11}],4:[function(require,module,exports){
+},{"./controllers/getty-images.js":1,"./controllers/image-exchange.js":2,"./models/attachments.js":4,"./views/browser/attachments.js":6,"./views/toolbars/provider.js":10}],4:[function(require,module,exports){
 /**
  * wp.media.model.StockPhotosQuery
  *
@@ -151,9 +153,9 @@ module.exports = ImageExchangeController;
  * @class
  * @augments wp.media.model.Attachments
  */
-var StockPhotosQuery = require('./image-crate-photos-query');
+var ProviderQuery = require('./query');
 
-var StockPhotos = wp.media.model.Attachments.extend({
+var ProviderAttachments = wp.media.model.Attachments.extend({
 
     initialize: function (models, options) {
         wp.media.model.Attachments.prototype.initialize.call(this, models, options);
@@ -164,14 +166,14 @@ var StockPhotos = wp.media.model.Attachments.extend({
         if ( this.props.get('query') ) {
             props = this.props.toJSON();
             props.cache = ( true !== refresh );
-            this.mirror( StockPhotosQuery.get( props ) );
+            this.mirror( ProviderQuery.get( props ) );
         }
     }
 });
 
-module.exports = StockPhotos;
+module.exports = ProviderAttachments;
 
-},{"./image-crate-photos-query":5}],5:[function(require,module,exports){
+},{"./query":5}],5:[function(require,module,exports){
 /**
  * wp.media.model.Query
  *
@@ -179,7 +181,7 @@ module.exports = StockPhotos;
  *
  * @augments wp.media.model.Query
  */
-var StockPhotosQuery = wp.media.model.Query.extend({
+var ProviderQuery = wp.media.model.Query.extend({
 
         /**
          * Overrides wp.media.model.Query.sync
@@ -240,7 +242,7 @@ var StockPhotosQuery = wp.media.model.Query.extend({
              */
             return function (props, options) {
                 var someprops = props;
-                var Query = StockPhotosQuery,
+                var Query = ProviderQuery,
                     args = {},
                     query,
                     cache = !!props.cache || _.isUndefined(props.cache);
@@ -284,81 +286,9 @@ var StockPhotosQuery = wp.media.model.Query.extend({
         }())
     });
 
-module.exports = StockPhotosQuery;
+module.exports = ProviderQuery;
 
 },{}],6:[function(require,module,exports){
-/**
- * wp.media.view.StockPhotoThumb
- *
- * @augments wp.media.view.Attachment
- */
-var StockPhotoThumb = wp.media.view.Attachment.extend({
-
-    render: function () {
-        var options = _.defaults(this.model.toJSON(), {
-            orientation: 'landscape',
-            uploading: false,
-            type: '',
-            subtype: '',
-            icon: '',
-            filename: '',
-            caption: '',
-            title: '',
-            dateFormatted: '',
-            width: '',
-            height: '',
-            compat: false,
-            alt: '',
-            description: ''
-        }, this.options);
-
-        options.buttons = this.buttons;
-        options.describe = this.controller.state().get('describe');
-
-        if ('image' === options.type) {
-            options.size = this.imageSize('thumbnail');
-        }
-
-        options.can = {};
-        if (options.nonces) {
-            options.can.remove = !!options.nonces['delete'];
-            options.can.save = !!options.nonces.update;
-        }
-
-        if (this.controller.state().get('allowLocalEdits')) {
-            options.allowLocalEdits = true;
-        }
-
-        if (options.uploading && !options.percent) {
-            options.percent = 0;
-        }
-
-        this.views.detach();
-        this.$el.html(this.template(options));
-
-        this.$el.toggleClass('uploading', options.uploading);
-
-        if (options.uploading) {
-            this.$bar = this.$('.media-progress-bar div');
-        } else {
-            delete this.$bar;
-        }
-
-        // Check if the model is selected.
-        this.updateSelect();
-
-        // Update the save status.
-        this.updateSave();
-
-        this.views.render();
-
-        return this;
-    },
-});
-
-module.exports = StockPhotoThumb;
-
-},{}],7:[function(require,module,exports){
 /**
  * wp.media.view.StockPhotosBrowser
  *
@@ -369,27 +299,19 @@ var ImageCrateSearch = require('./search.js'),
     NoResults = require('./no-results.js'),
     VerticalsFilter = require('./verticals-filter.js'),
     coreAttachmentsInitialize  = wp.media.view.AttachmentsBrowser.prototype.initialize,
-    StockPhotosBrowser;
+    ProviderPhotosBrowser;
 
-StockPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
-    tagName: 'div',
-    className: 'image-crate attachments-browser',
-
-    defaults: _.defaults({
-        filters: false,
-        search: false,
-        date: false,
-        display: false,
-        sidebar: true,
-    }, wp.media.view.AttachmentsBrowser.prototype.defaults),
+ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
 
     initialize: function () {
         coreAttachmentsInitialize.apply(this, arguments);
+
         this.createToolBar();
-        this.createUploader();
+        // this.createUploader();
     },
 
     createToolBar: function() {
+
         this.toolbar.set('VerticalsFilterLabel', new wp.media.view.Label({
             value: 'Verticals Label',
             attributes: {
@@ -397,17 +319,20 @@ StockPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
             },
             priority: -75
         }).render());
+
         this.toolbar.set('VerticalsFilter', new VerticalsFilter({
             controller: this.controller,
             model: this.collection.props,
             priority: -75
         }).render());
 
-        this.toolbar.set('search', new ImageCrateSearch({
-            controller: this.controller,
-            model: this.collection.props,
-            priority: 60
-        }).render())
+        this.views.add(this.toolbar);
+
+        // this.toolbar.set('search', new ImageCrateSearch({
+        //     controller: this.controller,
+        //     model: this.collection.props,
+        //     priority: 60
+        // }).render())
     },
 
     // todo: clean this up and review entire file
@@ -423,8 +348,8 @@ StockPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
     // },
 });
 
-module.exports = StockPhotosBrowser;
-},{"./no-results.js":8,"./search.js":9,"./verticals-filter.js":10}],8:[function(require,module,exports){
+module.exports = ProviderPhotosBrowser;
+},{"./no-results.js":7,"./search.js":8,"./verticals-filter.js":9}],7:[function(require,module,exports){
 /**
  * wp.media.view.NoResults
  *
@@ -462,7 +387,7 @@ NoResults = UploaderInline.extend({
 
 module.exports = NoResults;
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /**
  * wp.media.view.ImageCrateSearch
  *
@@ -517,7 +442,7 @@ var ImageCrateSearch = wp.media.View.extend({
 });
 
 module.exports = ImageCrateSearch;
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /**
  * wp.media.view.VerticalsFilter
  *
@@ -560,7 +485,7 @@ var VerticalsFilter = wp.media.view.AttachmentFilters.extend( {
 });
 
 module.exports = VerticalsFilter;
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 /**
  * wp.media.controller.GettyImagesController
  *
