@@ -3,7 +3,7 @@
 namespace ImageCrate;
 
 
-use WPAZ_Plugin_Base\V_2_0\Abstract_Plugin;
+use WPAZ_Plugin_Base\V_2_5\Abstract_Plugin;
 use ImageCrate\Admin\Admin_Init;
 use ImageCrate\Admin\Scripts;
 use ImageCrate\Admin\Api;
@@ -65,7 +65,6 @@ class Init extends Abstract_Plugin {
 	public function init() {
 		do_action( get_called_class() . '_before_init' );
 
-		$this->init_providers();
 		//$provider = new Provider_Image_Exchange();
 		//new Ajax( $provider );
 
@@ -85,17 +84,6 @@ class Init extends Abstract_Plugin {
 		add_action( 'init', array( $this, 'init' ) );
 		// auth init
 		add_action( 'init', array( $this, 'authenticated_init' ) );
-	}
-
-	/**
-	 * Load up the various providers
-	 */
-	public function init_providers() {
-		$files = glob( dirname( __FILE__ ) . '/admin/providers/class-provider-*.php' );
-		foreach ( $files as $file ) {
-			$class_name = static::filepath_to_classname( $file, $this->installed_dir, __NAMESPACE__ );
-			new $class_name;
-		}
 	}
 
 	/**

@@ -2,6 +2,7 @@
 
 namespace ImageCrate\Admin;
 
+//use ImageCrate\Admin\Providers\Provider_Getty_Images as Getty;
 
 /**
  * Admin Class
@@ -27,14 +28,19 @@ class Admin_Init {
 	public static function get() {
 		check_ajax_referer( 'image_crate' );
 
+		// intersect query provider here from $_REQUEST
 		$images = static::prepare_attachments();
 
 		return wp_send_json_success( $images );
 	}
 
 	public static function prepare_attachments() {
-		return array(
-			array(
+
+		$images = [];
+
+		if ( 'getty-images' === $_REQUEST['query']['provider'] ) {
+
+			$images[] = [
 				'id'           => 687131838,
 				'title'        => 'Star Wars Commemorative Stamp Presentation',
 				'filename'     => 'star-wars-commemorative-stamp-presentation',
@@ -61,8 +67,11 @@ class Admin_Init {
 				'download_uri' => 'http://google.com',
 				'max_width'    => '3500',
 				'max_height'   => '2329',
-			),
-			array(
+			];
+		}
+
+		if ( 'image-exchange' === $_REQUEST['query']['provider'] ) {
+			$images[] = [
 				'id'           => 687131814,
 				'title'        => 'Some other presentation for star wars',
 				'filename'     => 'star-wars-is-the-best',
@@ -89,8 +98,10 @@ class Admin_Init {
 				'download_uri' => 'http://google.com',
 				'max_width'    => '3500',
 				'max_height'   => '2329',
-			)
-		);
+			];
+		}
+
+		return $images;
 	}
 
 
