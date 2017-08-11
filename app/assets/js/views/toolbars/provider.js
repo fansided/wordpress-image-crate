@@ -23,7 +23,7 @@ var ProviderToolbar = function (view) {
         click: function () {
             var selection = state.get('selection');
 
-            // todo: download image here
+            // todo: ajax call to download image here
             // reference image-crate.manifest.js from v2 for execution here.
 
             controller.close();

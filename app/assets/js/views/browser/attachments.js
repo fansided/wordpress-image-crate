@@ -58,7 +58,7 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
      * came up empty. In this version the upload tab is not rendered and not needed when interacting with
      * external image APIs.
      *
-     * todo: Move no results to it's own view and render if no results are in the response
+     * todo: Move no results to its own view and render if no results are in the response
      * Code is left here for reference.
      */
    // createUploader: function () {

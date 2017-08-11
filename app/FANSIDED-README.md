@@ -14,6 +14,7 @@ Next, a provider needs to extend the abstract provider class and supply body for
 Scaffolding has been set up for multiple providers on both the backend and the frontend (admin page). 
 
 #### Past Project requirements
+
 ##### Custom Directories
 In the past has been to store providers in a custom directory. For getty images, the directory was located in `wp-content/uploads/getty-images/year/month`. Placing images in a custom directory will break image paths, so the images need to be filtered. Getty images are handled [here](https://github.com/fansided/fansided-vip/blob/master/includes/FS_Getty_Images.class.php#L83-L86) and USA Today Images(now deactivated) are handle [here](https://github.com/fansided/fansided-v5/blob/master/inc/post-functions.php#L918-L963). 
 ##### Tracking
@@ -22,7 +23,8 @@ As of 8/11/2017, Getty Images is only provider has image tracking implemented. T
 As a quick overview of the current tracking method, an attachment post on blog id one (fansidedblogs.net) is created when an image is downloaded from a provider. When another site downloads that same image, the id of the post is tracked in the attachment post postmeta. A SQL query can then be ran to poll the usage numbers.
 
 ### PHP
-- Create 
+- Finish/fine tune the provider selector in the get() method in class-admin-init.php
+- Complete body for image providers, use classes in the `_reference` folder for structure
 - Maybe add tracking
 
 ### JS
