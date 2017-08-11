@@ -10,6 +10,11 @@ var Library = wp.media.controller.Library,
     GettyImagesController;
 
 GettyImagesController = Library.extend({
+
+    /**
+     * Extend the core defaults and add modify listener key values. These values are referenced when
+     * the controller is triggered.
+     */
     defaults: _.defaults({
         id: 'getty-images',
         title: 'Getty Images (IC)',
@@ -18,7 +23,15 @@ GettyImagesController = Library.extend({
         router: 'image-provider',
         toolbar: 'image-provider',
         button: 'Download Getty Image',
+
+        /**
+         * Any data that needs to be passed from this controller via ajax, should be passed with this object.
+         *
+         * The provider key is parsed on the backend to determine which object to use. The chosen object is then used
+         * to retrieve images from a external service.
+         */
         library: wp.media.query({ provider: 'getty-images'} )
+
     }, Library.prototype.defaults ),
 
     activate: function () {
@@ -39,6 +52,11 @@ var Library = wp.media.controller.Library,
     ImageExchangeController;
 
 ImageExchangeController = Library.extend({
+
+    /**
+     * Extend the core defaults and add modify listener key values. These values are referenced when
+     * the controller is triggered.
+     */
     defaults: _.defaults({
         id: 'image-exchange',
         title: 'Image Exchange',
@@ -47,6 +65,13 @@ ImageExchangeController = Library.extend({
         router: 'image-provider',
         toolbar: 'image-provider',
         button: 'Download FanSided Image',
+
+        /**
+         * Any data that needs to be passed from this controller via ajax, should be passed with this object.
+         *
+         * The provider key is parsed on the backend to determine which object to use. The chosen object is then used
+         * to retrieve images from a external service.
+         */
         library: wp.media.query({ provider: 'image-exchange' })
     }, Library.prototype.defaults ),
 
@@ -60,19 +85,26 @@ module.exports = ImageExchangeController;
 (function ($) {
 	$(function () {
 
+        /**
+         * Image Crate Manifest - Adding custom controllers to the WordPress media modal.
+         *
+         * The main effort of this project is to add multiple image providers in a native WordPress way. This is
+         * executed by extending the Post MediaFrame {VVV/www/wordpress-develop/src/wp-includes/js/media/views/frame/post.js}
+         *
+         */
 		var imagecrate = imagecrate || {};
 
-		// core
+        // Store the core post view.
 		var corePost = wp.media.view.MediaFrame.Post;
 
-		// controllers
+		// Controllers
 		imagecrate.ImageExchangeController = require('./controllers/image-exchange.js');
 		imagecrate.GettyImagesController = require('./controllers/getty-images.js');
 
-		//models
+		// Attachment Models
         imagecrate.ProviderAttachments = require('./models/attachments.js');
 
-		// views
+		// Views
 		imagecrate.ProviderToolbar = require('./views/toolbars/provider.js');
         imagecrate.ProviderPhotosBrowser = require('./views/browser/attachments.js');
 
@@ -81,16 +113,31 @@ module.exports = ImageExchangeController;
 		 */
 		wp.media.view.MediaFrame.Post = corePost.extend({
 
+            /**
+             * If you want to extend the function body from a parent object you need to call prototype.functionName.
+             *
+             * This is similar to using `parent::__construct();` in php.
+             */
             createStates: function () {
 				corePost.prototype.createStates.apply(this, arguments);
 
+                /**
+                 * Adding states adds menu items to the left menu on the media modal.
+                 */
 				this.states.add([
 					new imagecrate.GettyImagesController,
 					new imagecrate.ImageExchangeController
 				]);
 			},
 
-			bindHandlers: function () {
+            /**
+             * Assign handlers to controllers.
+             *
+             * `content:create:provider` is a listener assignment for an event that is triggered when a provider
+             * controller is clicked. When this event is triggered, the callback is fired and any listeners subscribed
+             * to the event, will update their views.
+             */
+            bindHandlers: function () {
 				corePost.prototype.bindHandlers.apply(this, arguments);
 
 				this.on('toolbar:create:image-provider', this.createToolbar, this);
@@ -102,6 +149,11 @@ module.exports = ImageExchangeController;
                 this.on('content:create:provider', this.providerContent, this);
 			},
 
+            /**
+             * Load images from an external source.
+             *
+             * @param contentRegion
+             */
             providerContent: function( contentRegion ) {
                 var state = this.state(),
                     id = state.get('id'),
@@ -112,6 +164,12 @@ module.exports = ImageExchangeController;
                     collection = new imagecrate.ProviderAttachments(
                         null,
                         {
+                            /**
+                             * Passing the props from the controller is important here. The provider type is set when
+                             * the controller is instantiated. When the ajax call is sent, provider type passed as a
+                             * request param. That value is then used to create new object to get images from the
+                             * requested provider.
+                             */
                             props: state.get('library').props.toJSON()
                         }
                     );
@@ -120,6 +178,11 @@ module.exports = ImageExchangeController;
                     state.set('image_crate_photos', collection);
                 }
 
+                /**
+                 * Set main content view to display external images.
+                 *
+                 * @see /assets/js/views/browser/attachments.js
+                 */
                 contentRegion.view = new imagecrate.ProviderPhotosBrowser({
                     tagName: 'div',
                     className: id + ' image-crate attachments-browser',
@@ -132,8 +195,18 @@ module.exports = ImageExchangeController;
                 });
             },
 
+            /**
+             * When the router listener is fired, the view updates the tabs located above the image browser.
+             *
+             * If only one object is passed, the tab view will not display. Priority controls render order.
+             */
             providerRouter: function (routerView) {
                 routerView.set({
+
+                    /*
+                     * The naming of this object is important here. When this router is rendered,
+                     * 'content:create:provider' is trigger and the content is updated.
+                     */
                     provider: {
                         text: 'Provider',
                         priority: 20
@@ -156,10 +229,12 @@ module.exports = ImageExchangeController;
 var ProviderQuery = require('./query');
 
 var ProviderAttachments = wp.media.model.Attachments.extend({
-
-    initialize: function (models, options) {
-        wp.media.model.Attachments.prototype.initialize.call(this, models, options);
-    },
+    /**
+     * Override core _requery method to accept a custom query
+     *
+     * @param refresh
+     * @private
+     */
     _requery: function (refresh) {
         var props;
 
@@ -175,14 +250,16 @@ module.exports = ProviderAttachments;
 
 },{"./query":5}],5:[function(require,module,exports){
 /**
- * wp.media.model.Query
+ * wp.media.model.ProviderQuery
  *
  * A collection of attachments from the external data source.
+ *
+ * This file is nearly one to one replica of the core query file. Exceptions are where options.data is extended to
+ * communicate with a custom method and where Query is updated to use the overridden core query.
  *
  * @augments wp.media.model.Query
  */
 var ProviderQuery = wp.media.model.Query.extend({
-
         /**
          * Overrides wp.media.model.Query.sync
          * Overrides Backbone.Collection.sync
@@ -310,8 +387,14 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
         // this.createUploader();
     },
 
+    /**
+     * Override core toolbar view rendering.
+     *
+     * Change events are auto assigned to select fields and text inputs. Any form change will send
+     * new values to the backend via an ajax call.
+     */
     createToolBar: function() {
-
+        // Labels are display visually, but they are rendered for accessibility.
         this.toolbar.set('VerticalsFilterLabel', new wp.media.view.Label({
             value: 'Verticals Label',
             attributes: {
@@ -326,26 +409,36 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
             priority: -75
         }).render());
 
-        this.views.add(this.toolbar);
-
+        // todo: Fix a bug where setting a custom search causes two ajax calls to fire on content render.
         // this.toolbar.set('search', new ImageCrateSearch({
         //     controller: this.controller,
         //     model: this.collection.props,
         //     priority: 60
-        // }).render())
+        // }).render());
+
+        this.views.add(this.toolbar);
     },
 
-    // todo: clean this up and review entire file
-    // createUploader: function () {
-    //     this.uploader = new NoResults({
-    //         controller: this.controller,
-    //         status: false,
-    //         message: 'Sorry, No images were found.'
-    //     });
-    //
-    //     this.uploader.hide();
-    //     this.views.add(this.uploader);
-    // },
+    /**
+     * Override core uploader method.
+     *
+     * In the previous version of the plugin the uploader was overridden to show no results if a term search
+     * came up empty. In this version the upload tab is not rendered and not needed when interacting with
+     * external image APIs.
+     *
+     * todo: Move no results to it's own view and render if no results are in the response
+     * Code is left here for reference.
+     */
+   // createUploader: function () {
+        // this.noresults = new NoResults({
+        //     controller: this.controller,
+        //     status: false,
+        //     message: 'Sorry, No images were found.'
+        // });
+        //
+        // // this.noresults.hide();
+        // this.views.add(this.noresults);
+    //},
 });
 
 module.exports = ProviderPhotosBrowser;
@@ -391,6 +484,8 @@ module.exports = NoResults;
 /**
  * wp.media.view.ImageCrateSearch
  *
+ * imagecrate.default_search is rendered on the page by using wp_localize_script on image-crate.js.
+ *
  * @augments wp.media.view.Search
  */
 var ImageCrateSearch = wp.media.View.extend({
@@ -430,6 +525,8 @@ var ImageCrateSearch = wp.media.View.extend({
      * There's a bug in core where searches aren't de-bounced in the media library.
      * Normally, not a problem, but with external api calls or tons of image/users, ajax
      * calls could effect server performance. This fixes that for now.
+     *
+     * Todo: This is fixed in 4.8, but still needs tested with this plugin. To test, comment out deBounceSearch()
      */
     deBounceSearch: _.debounce(function (event) {
         if (event.target.value) {
@@ -512,6 +609,7 @@ var ProviderToolbar = function (view) {
             var selection = state.get('selection');
 
             // todo: download image here
+            // reference image-crate.manifest.js from v2 for execution here.
 
             controller.close();
             state.trigger('insert', selection).reset();

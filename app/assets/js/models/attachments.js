@@ -9,10 +9,12 @@
 var ProviderQuery = require('./query');
 
 var ProviderAttachments = wp.media.model.Attachments.extend({
-
-    initialize: function (models, options) {
-        wp.media.model.Attachments.prototype.initialize.call(this, models, options);
-    },
+    /**
+     * Override core _requery method to accept a custom query
+     *
+     * @param refresh
+     * @private
+     */
     _requery: function (refresh) {
         var props;
 
