@@ -2,7 +2,7 @@
 
 namespace ImageCrate\Admin;
 
-//use ImageCrate\Admin\Providers\Provider_Getty_Images as Getty;
+use ImageCrate\Admin\Providers\Provider_Getty_Images;
 
 /**
  * Admin Class
@@ -19,16 +19,26 @@ class Admin_Init {
 	 * Run Hooks
 	 */
 	public static function run() {
+		Scripts::setup();
+
 		add_action( 'admin_init', array( get_called_class(), 'register_fields' ) );
 		add_filter( 'plugin_action_links_wordpress-image-crate/image-crate.php', array( get_called_class(), 'add_action_links' ) );
-
 		add_action( 'wp_ajax_image_crate_get', array( get_called_class(), 'get' ) );
 	}
 
 	public static function get() {
 		check_ajax_referer( 'image_crate' );
 
-		// intersect query provider here from $_REQUEST
+		// This could be cleaner
+		$provider = $_REQUEST['query']['provider'];
+		$provider = str_replace( '-', ' ', $provider );
+		$provider = ucwords( $provider );
+		$provider = str_replace( ' ', '_', $provider );
+
+		$provider = '\ImageCrate\Admin\Providers\Provider_' . $provider;
+		$provider = new $provider;
+		//$provider->fetch();
+
 		$images = static::prepare_attachments();
 
 		return wp_send_json_success( $images );
@@ -38,6 +48,9 @@ class Admin_Init {
 
 		$images = [];
 
+		/**
+		 * Todo: Data here is just for testing. Actual data should pull from the designated provider class.
+		 */
 		if ( 'getty-images' === $_REQUEST['query']['provider'] ) {
 
 			$images[] = [

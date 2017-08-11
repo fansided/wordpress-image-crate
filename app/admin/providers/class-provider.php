@@ -10,7 +10,7 @@ abstract class Provider {
 	 *
 	 * @var $directory string
 	 */
-	private $directory;
+	public $directory;
 
 	/**
 	 * Retrieve image data from provider.
@@ -35,6 +35,8 @@ abstract class Provider {
 
 	/**
 	 * Set the custom image directory to store images.
+	 *
+	 * @link
 	 *
 	 * @param   array $upload Filtered upload dir locations
 	 *

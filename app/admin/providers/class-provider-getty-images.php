@@ -5,18 +5,6 @@ namespace ImageCrate\Admin\Providers;
 
 class Provider_Getty_Images extends Provider {
 
-	private $hello;
-
-	function __construct( $hello ) {
-
-		$this->hello = $hello;
-	}
-
-	function getHello() {
-		return $this->hello;
-	}
-
-
 	/**
 	 * Retrieve image data from provider.
 	 *

@@ -5,10 +5,6 @@ namespace ImageCrate;
 
 use WPAZ_Plugin_Base\V_2_5\Abstract_Plugin;
 use ImageCrate\Admin\Admin_Init;
-use ImageCrate\Admin\Scripts;
-use ImageCrate\Admin\Api;
-use ImageCrate\Admin\Ajax;
-use ImageCrate\Admin\Providers\Provider_Image_Exchange;
 
 class Init extends Abstract_Plugin {
 
@@ -51,8 +47,7 @@ class Init extends Abstract_Plugin {
 	 */
 	public function authenticated_init() {
 		if ( is_user_logged_in() ) {
-			Admin_Init::run();
-			(new Scripts())->setup();
+			(new Admin_Init)->run();
 		}
 	}
 
@@ -64,9 +59,6 @@ class Init extends Abstract_Plugin {
 	 */
 	public function init() {
 		do_action( get_called_class() . '_before_init' );
-
-		//$provider = new Provider_Image_Exchange();
-		//new Ajax( $provider );
 
 		do_action( get_called_class() . '_after_init' );
 	}
