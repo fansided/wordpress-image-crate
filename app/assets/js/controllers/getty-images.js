@@ -16,7 +16,7 @@ GettyImagesController = Library.extend({
      */
     defaults: _.defaults({
         id: 'getty-images',
-        title: 'Getty Images (IC)',
+        title: 'Getty Images',
         priority: 300,
         content: 'provider',
         router: 'image-provider',

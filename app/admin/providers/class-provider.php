@@ -15,9 +15,11 @@ abstract class Provider {
 	/**
 	 * Retrieve image data from provider.
 	 *
+	 * @param array $query Query params used for fetch images
+	 *
 	 * @return mixed
 	 */
-	abstract function fetch();
+	abstract function fetch( $query );
 
 	/**
 	 * Download the selected image
