@@ -249,6 +249,8 @@ var ProviderAttachments = wp.media.model.Attachments.extend({
 module.exports = ProviderAttachments;
 
 },{"./query":5}],5:[function(require,module,exports){
+var Attachments = wp.media.model.Attachments;
+
 /**
  * wp.media.model.ProviderQuery
  *
@@ -259,109 +261,174 @@ module.exports = ProviderAttachments;
  *
  * @augments wp.media.model.Query
  */
-var ProviderQuery = wp.media.model.Query.extend({
-        /**
-         * Overrides wp.media.model.Query.sync
-         * Overrides Backbone.Collection.sync
-         * Overrides wp.media.model.Attachments.sync
-         *
-         * @param {String} method
-         * @param {Backbone.Model} model
-         * @param {Object} [options={}]
-         * @returns {Promise}
-         */
-        sync: function (method, model, options) {
-            var args;
+var ProviderQuery = wp.media.model.Query.extend( {
 
-            // Overload the read method so Attachment.fetch() functions correctly.
-            if ('read' === method) {
-                options = options || {};
-                options.context = this;
-                options.data = _.extend(options.data || {}, {
-                    action: 'image_crate_get',
-                    _ajax_nonce: imagecrate.nonce
-                });
+		/**
+		 * Override the initialize method to delay query until search term is provided
+		 *
+		 * @param models
+		 * @param options
+		 * @return {boolean}
+		 */
+		initialize: function( models, options ) {
+			var allowed;
 
-                // Clone the args so manipulation is non-destructive.
-                args = _.clone(this.args);
+			// Bail if search term is not provided
+			if ( _.isUndefined( options.args.search ) || _.isEmpty( options.args.search ) ) {
+				return false;
+			}
 
-                // Determine which page to query.
-                if (-1 !== args.posts_per_page) {
-                    args.paged = Math.round(this.length / args.posts_per_page) + 1;
-                }
+			options = options || {};
+			Attachments.prototype.initialize.apply( this, arguments );
 
-                options.data.query = args;
-                return wp.media.ajax(options);
+			this.args     = options.args;
+			this._hasMore = true;
+			this.created  = new Date();
 
-                // Otherwise, fall back to Backbone.sync()
-            } else {
-                /**
-                 * Call wp.media.model.Attachments.sync or Backbone.sync
-                 */
-                fallback = Attachments.prototype.sync ? Attachments.prototype : Backbone;
-                return fallback.sync.apply(this, arguments);
-            }
-        }
-    },
-    {
-        /**
-         * Overriding core behavior
-         */
-        get: (function () {
-            /**
-             * @static
-             * @type Array
-             */
-            var queries = [];
+			this.filters.order = function( attachment ) {
+				var orderby = this.props.get('orderby'),
+					order = this.props.get('order');
 
-            /**
-             * @returns {Query}
-             */
-            return function (props, options) {
-                var someprops = props;
-                var Query = ProviderQuery,
-                    args = {},
-                    query,
-                    cache = !!props.cache || _.isUndefined(props.cache);
+				if ( ! this.comparator ) {
+					return true;
+				}
 
-                // Remove the `query` property. This isn't linked to a query,
-                // this *is* the query.
-                delete props.query;
-                delete props.cache;
+				// We want any items that can be placed before the last
+				// item in the set. If we add any items after the last
+				// item, then we can't guarantee the set is complete.
+				if ( this.length ) {
+					return 1 !== this.comparator( attachment, this.last(), { ties: true });
 
-                // Generate the query `args` object.
-                // Correct any differing property names.
-                _.each(props, function (value, prop) {
-                    if (_.isNull(value)) {
-                        return;
-                    }
-                    args[prop] = value;
-                });
+					// Handle the case where there are no items yet and
+					// we're sorting for recent items. In that case, we want
+					// changes that occurred after we created the query.
+				} else if ( 'DESC' === order && ( 'date' === orderby || 'modified' === orderby ) ) {
+					return attachment.get( orderby ) >= this.created;
 
-                // Fill any other default query args.
-                _.defaults(args, Query.defaultArgs);
+					// If we're sorting by menu order and we have no items,
+					// accept any items that have the default menu order (0).
+				} else if ( 'ASC' === order && 'menuOrder' === orderby ) {
+					return attachment.get( orderby ) === 0;
+				}
 
-                // Search the query cache for a matching query.
-                if (cache) {
-                    query = _.find(queries, function (query) {
-                        return _.isEqual(query.args, args);
-                    });
-                } else {
-                    queries = [];
-                }
+				// Otherwise, we don't want any items yet.
+				return false;
+			};
 
-                // Otherwise, create a new query and add it to the cache.
-                if (!query) {
-                    query = new Query([], _.extend(options || {}, {
-                        props: props,
-                        args: args
-                    }));
-                    queries.push(query);
-                }
-                return query;
-            };
-        }())
-    });
+			// Observe the central `wp.Uploader.queue` collection to watch for
+			// new matches for the query.
+			//
+			// Only observe when a limited number of query args are set. There
+			// are no filters for other properties, so observing will result in
+			// false positives in those queries.
+			allowed = [ 's', 'order', 'orderby', 'posts_per_page', 'post_mime_type', 'post_parent' ];
+			if ( wp.Uploader && _( this.args ).chain().keys().difference( allowed ).isEmpty().value() ) {
+				this.observe( wp.Uploader.queue );
+			}
+		},
+
+		/**
+		 * Overrides wp.media.model.Query.sync
+		 * Overrides Backbone.Collection.sync
+		 * Overrides wp.media.model.Attachments.sync
+		 *
+		 * @param {String} method
+		 * @param {Backbone.Model} model
+		 * @param {Object} [options={}]
+		 * @returns {Promise}
+		 */
+		sync: function( method, model, options ) {
+			var args;
+
+			// Overload the read method so Attachment.fetch() functions correctly.
+			if ( 'read' === method ) {
+				options = options || {};
+				options.context = this;
+				options.data = _.extend( options.data || {}, {
+					action: 'image_crate_get',
+					_ajax_nonce: imagecrate.nonce
+				} );
+
+				// Clone the args so manipulation is non-destructive.
+				args = _.clone( this.args );
+
+				// Determine which page to query.
+				if ( -1 !== args.posts_per_page ) {
+					args.paged = Math.round( this.length / args.posts_per_page ) + 1;
+				}
+
+				options.data.query = args;
+				return wp.media.ajax( options );
+
+				// Otherwise, fall back to Backbone.sync()
+			} else {
+				/**
+				 * Call wp.media.model.Attachments.sync or Backbone.sync
+				 */
+				fallback = Attachments.prototype.sync ? Attachments.prototype : Backbone;
+				return fallback.sync.apply( this, arguments );
+			}
+		}
+	},
+	{
+		/**
+		 * Overriding core behavior
+		 */
+		get: (function() {
+			/**
+			 * @static
+			 * @type Array
+			 */
+			var queries = [];
+
+			/**
+			 * @returns {Query}
+			 */
+			return function( props, options ) {
+				var someprops = props;
+				var Query = ProviderQuery,
+					args = {},
+					query,
+					cache = !!props.cache || _.isUndefined( props.cache );
+
+				// Remove the `query` property. This isn't linked to a query,
+				// this *is* the query.
+				delete props.query;
+				delete props.cache;
+
+				// Generate the query `args` object.
+				// Correct any differing property names.
+				_.each( props, function( value, prop ) {
+					if ( _.isNull( value ) ) {
+						return;
+					}
+					args[prop] = value;
+				} );
+
+				// Fill any other default query args.
+				_.defaults( args, Query.defaultArgs );
+
+				// Search the query cache for a matching query.
+				if ( cache ) {
+					query = _.find( queries, function( query ) {
+						return _.isEqual( query.args, args );
+					} );
+				} else {
+					queries = [];
+				}
+
+				// Otherwise, create a new query and add it to the cache.
+				if ( !query ) {
+					query = new Query( [], _.extend( options || {}, {
+						props: props,
+						args: args
+					} ) );
+					queries.push( query );
+				}
+				return query;
+			};
+		}())
+	} );
 
 module.exports = ProviderQuery;
 
@@ -372,115 +439,187 @@ module.exports = ProviderQuery;
  * @class
  * @augments wp.media.view.AttachmentsBrowser
  */
-var ImageCrateSearch = require('./search.js'),
-    NoResults = require('./no-results.js'),
-    VerticalsFilter = require('./verticals-filter.js'),
-    coreAttachmentsInitialize  = wp.media.view.AttachmentsBrowser.prototype.initialize,
-    ProviderPhotosBrowser;
+var ImageCrateSearch = require( './search.js' ),
+	NoResults = require( './no-results.js' ),
+	VerticalsFilter = require( './verticals-filter.js' ),
+	coreAttachmentsInitialize = wp.media.view.AttachmentsBrowser.prototype.initialize,
+	ProviderPhotosBrowser;
 
-ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend({
+ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend( {
 
-    initialize: function () {
-        coreAttachmentsInitialize.apply(this, arguments);
+	initialize: function() {
+		coreAttachmentsInitialize.apply( this, arguments );
 
-        this.createToolBar();
-        // this.createUploader();
-    },
+		this.createToolBar();
+		this.createUploader( true );
+	},
 
-    /**
-     * Override core toolbar view rendering.
-     *
-     * Change events are auto assigned to select fields and text inputs. Any form change will send
-     * new values to the backend via an ajax call.
-     */
-    createToolBar: function() {
-        // Labels are display visually, but they are rendered for accessibility.
-        this.toolbar.set('VerticalsFilterLabel', new wp.media.view.Label({
-            value: 'Verticals Label',
-            attributes: {
-                'for': 'media-attachment-vertical-filters'
-            },
-            priority: -75
-        }).render());
+	updateContent: function() {
+		var view = this,
+			noItemsView;
 
-        this.toolbar.set('VerticalsFilter', new VerticalsFilter({
-            controller: this.controller,
-            model: this.collection.props,
-            priority: -75
-        }).render());
+		noItemsView = view.uploader;
 
-        // todo: Fix a bug where setting a custom search causes two ajax calls to fire on content render.
-        // this.toolbar.set('search', new ImageCrateSearch({
-        //     controller: this.controller,
-        //     model: this.collection.props,
-        //     priority: 60
-        // }).render());
+		if ( !this.collection.length ) {
+			this.toolbar.get( 'spinner' ).show();
+			noItemsView.$el.hide();
+			this.toolbar.get( 'search' ).$el.show();
 
-        this.views.add(this.toolbar);
-    },
+			this.dfd = this.collection.more().done( function() {
+				if ( !view.collection.length ) {
+					noItemsView.$el.show();
+				} else {
+					noItemsView.$el.hide();
+				}
+				view.toolbar.get( 'spinner' ).hide();
+			} );
 
-    /**
-     * Override core uploader method.
-     *
-     * In the previous version of the plugin the uploader was overridden to show no results if a term search
-     * came up empty. In this version the upload tab is not rendered and not needed when interacting with
-     * external image APIs.
-     *
-     * todo: Move no results to its own view and render if no results are in the response
-     * Code is left here for reference.
-     */
-   // createUploader: function () {
-        // this.noresults = new NoResults({
-        //     controller: this.controller,
-        //     status: false,
-        //     message: 'Sorry, No images were found.'
-        // });
-        //
-        // // this.noresults.hide();
-        // this.views.add(this.noresults);
-    //},
-});
+		} else {
+			noItemsView.$el.addClass( 'hidden' );
+			view.toolbar.get( 'spinner' ).hide();
+		}
+	},
+
+	/**
+	 * Override core toolbar view rendering.
+	 *
+	 * Change events are auto assigned to select fields and text inputs. Any form change will send
+	 * new values to the backend via an ajax call.
+	 */
+	createToolBar: function() {
+		// Labels are display visually, but they are rendered for accessibility.
+		// this.toolbar.set( 'VerticalsFilterLabel', new wp.media.view.Label( {
+		// 	value: 'Verticals Label',
+		// 	attributes: {
+		// 		'for': 'media-attachment-vertical-filters'
+		// 	},
+		// 	priority: -75
+		// } ).render() );
+		//
+		// this.toolbar.set( 'VerticalsFilter', new VerticalsFilter( {
+		// 	controller: this.controller,
+		// 	model: this.collection.props,
+		// 	priority: -75
+		// } ).render() );
+
+		var model =  this.collection.props;
+
+		this.toolbar.unset( 'dateFilterLabel', {} );
+		this.toolbar.unset( 'dateFilter', {} );
+		this.toolbar.unset( 'search', {} );
+
+		this.toolbar.set( 'search', new ImageCrateSearch( {
+			controller: this.controller,
+			model: this.collection.props,
+			priority: -70
+		} ).render() );
+
+		this.views.add( this.toolbar );
+
+		if ( !this.collection.length && ! model.get( 'searchActive' ) ) {
+			this.toolbar.get( 'search' ).$el.hide();
+		}
+	},
+
+	/**
+	 * Override core uploader method.
+	 */
+	createUploader: function( render ) {
+		var shouldRender = ( !_.isUndefined( render ) );
+
+		this.uploader = new NoResults( {
+			controller: this.controller,
+			model: this.collection.props,
+			collection: this.collection,
+			shouldRender: shouldRender
+		} );
+
+		this.views.add( this.uploader );
+	}
+
+} );
 
 module.exports = ProviderPhotosBrowser;
 },{"./no-results.js":7,"./search.js":8,"./verticals-filter.js":9}],7:[function(require,module,exports){
-/**
- * wp.media.view.NoResults
- *
- * @augments wp.media.view.UploaderInline
- */
-var UploaderInline = wp.media.view.UploaderInline,
-    NoResults;
+var ImageCrateSearch = require( './search.js' );
 
-NoResults = UploaderInline.extend({
-    tagName: 'div',
-    className: 'image-crate-no-results uploader-inline',
-    template: wp.template('image-crate-no-results'),
+var NoResults = wp.media.View.extend( {
+	tagName: 'div',
+	className: 'no-results-found',
 
-    ready: function () {
-        var $browser = this.options.$browser,
-            $placeholder;
+	initialize: function() {
+		this.model.on( 'change', this.render, this );
+		this.collection.on( 'change add remove reset', _.debounce( this.render, 300 ), this );
 
-        if (this.controller.uploader) {
-            $placeholder = this.$('.browser');
+		if ( this.model.get( 'search' ) === undefined ) {
+			this.model.set( 'search', '' );
+		}
 
-            // Check if we've already replaced the placeholder.
-            if ($placeholder[0] === $browser[0]) {
-                return;
-            }
+		if ( this.model.get( 'searchActive' ) === undefined ) {
+			this.model.set( 'searchActive', false );
+		}
+	},
 
-            $browser.detach().text($placeholder.text());
-            $browser[0].className = 'browser button button-hero';
-            $placeholder.replaceWith($browser.show());
-        }
+	/**
+	 * @returns {wp.media.view.Search} Returns itself to allow chaining
+	 */
+	render: function() {
 
-        this.refresh();
-        return this;
-    }
-});
+		if ( !this.options.shouldRender ) {
+			jQuery( this.el ).remove();
+			return this;
+		}
+
+		jQuery( this.el ).empty();
+
+		if ( this.collection.length > 0 ) {
+			return this;
+		}
+
+		if ( !this.model.get( 'searchActive' ) ) {
+			var Search = new ImageCrateSearch( {
+				controller: this.controller,
+				model: this.collection.props
+			} ).render();
+
+			jQuery( this.el ).append(
+				jQuery(
+					'<div class="uploader-inline image-crate-no-results">' +
+					'<div class="uploader-inline-content">' +
+					'<h2 class="upload-message">Search for images</h2>' +
+					'</div>' +
+					'</div>'
+				)
+			)
+
+			jQuery( this.el ).find( '.uploader-inline-content' ).append(
+				Search.$el
+			)
+
+			setTimeout( function() {
+				jQuery( '.image-crate-no-results input:text' ).focus();
+			}, 200 )
+
+			return this;
+		}
+
+		jQuery( this.el ).append(
+			jQuery(
+				'<div class="uploader-inline image-crate-no-results">' +
+				'<div class="uploader-inline-content">' +
+				'<h2 class="upload-message">No images found. Try a different search.</h2>' +
+				'</div>' +
+				'</div>'
+			)
+		)
+
+		return this;
+	}
+
+} );
 
 module.exports = NoResults;
-
-},{}],8:[function(require,module,exports){
+},{"./search.js":8}],8:[function(require,module,exports){
 /**
  * wp.media.view.ImageCrateSearch
  *
@@ -488,55 +627,47 @@ module.exports = NoResults;
  *
  * @augments wp.media.view.Search
  */
-var ImageCrateSearch = wp.media.View.extend({
-    tagName: 'input',
-    className: 'search ic-search',
-    id: 'media-search-input',
+var ImageCrateSearch = wp.media.View.extend( {
+	tagName: 'form',
+	className: 'ic-search-form',
 
-    attributes: {
-        type: 'search',
-        placeholder: 'Search Images'
-    },
+	events: {
+		'submit': 'search'
+	},
 
-    events: {
-        'input': 'search',
-        'keyup': 'search'
-    },
+	initialize: function() {
+		if ( this.model.get( 'search' ) === undefined ) {
+			this.model.set( 'search', '' );
+		}
 
-    initialize: function() {
-        if ( this.model.get( 'search' ) === undefined ) {
-            this.model.set( 'search', imagecrate.default_search );
-        }
-    },
+		this.model.on( 'change', this.render, this );
+	},
 
-    /**
-     * @returns {wp.media.view.Search} Returns itself to allow chaining
-     */
-    render: function () {
-        this.el.value = this.model.get( 'search' ) === undefined ? imagecrate.default_search : this.model.escape( 'search' );
-        return this;
-    },
+	/**
+	 * @returns {wp.media.view.Search} Returns itself to allow chaining
+	 */
+	render: function() {
+		jQuery( this.el ).empty()
 
-    search: function (event) {
-        this.deBounceSearch(event);
-    },
+		jQuery( this.el ).append(
+			jQuery( '<input type="text" name="media-search-input" placeholder="Search images" value="' + this.model.escape( 'search' ) + '" />' )
+		)
 
-    /**
-     * There's a bug in core where searches aren't de-bounced in the media library.
-     * Normally, not a problem, but with external api calls or tons of image/users, ajax
-     * calls could effect server performance. This fixes that for now.
-     *
-     * Todo: This is fixed in 4.8, but still needs tested with this plugin. To test, comment out deBounceSearch()
-     */
-    deBounceSearch: _.debounce(function (event) {
-        if (event.target.value) {
-            this.model.set('search', event.target.value);
-        } else {
-            this.model.unset('search');
-        }
-    }, 500)
+		jQuery( this.el ).append(
+			jQuery( '<input type="submit" class="button button-primary" value="Search" />' )
+		)
 
-});
+		return this;
+	},
+
+	search: function( event ) {
+		event.preventDefault();
+
+		this.model.set( 'search', event.target[0]['value'] )
+		this.model.set( 'searchActive', true )
+	}
+
+} );
 
 module.exports = ImageCrateSearch;
 },{}],9:[function(require,module,exports){
@@ -590,31 +721,63 @@ module.exports = VerticalsFilter;
  *
  * @augments wp.media.controller.Library
  */
-var ProviderToolbar = function (view) {
-    var controller = this,
-        state = controller.state();
+var ProviderToolbar = function( view ) {
+	var controller = this,
+		state = controller.state();
 
-    this.selectionStatusToolbar(view);
+	this.selectionStatusToolbar( view );
 
-    view.set(state.get('id'), {
-        style: 'primary',
-        priority: 80,
-        text: state.get('button'),
-        requires: {selection: true},
+	view.set( state.get( 'id' ), {
+		style: 'primary',
+		priority: 80,
+		text: state.get( 'button' ),
+		requires: { selection: true },
 
-        /**
-         * @fires wp.media.controller.State#insert
-         */
-        click: function () {
-            var selection = state.get('selection');
+		/**
+		 * @fires wp.media.controller.State#insert
+		 */
+		click: function() {
+			var selection = state.get( 'selection' );
+			var provider = state.get( 'id' );
 
-            // todo: ajax call to download image here
-            // reference image-crate.manifest.js from v2 for execution here.
+			jQuery( '.media-toolbar-primary .media-button' )
+				.text( 'Downloading...' )
+				.before( '<span class="image-crate-spinner spinner is-active"></span>' )
 
-            controller.close();
-            state.trigger('insert', selection).reset();
-        }
-    });
+			wp.media.ajax( {
+				data: {
+					action: 'image_crate_download',
+					query: {
+						download_url: selection.models[0].get( 'url' ),
+						provider: provider,
+						filename: selection.models[0].get( 'filename' ),
+						id: selection.models[0].get( 'id' )
+					},
+					_ajax_nonce: imagecrate.nonce
+				}
+			} ).done( function( attachment ) {
+
+				// Swap back to insert state to manipulate collection.
+				controller.setState( 'insert' );
+
+				// Image may exist in the library, so we move it to the front of the line
+				var browse = wp.media.frame.content.mode( 'browse' );
+
+				// might not need this
+				browse.get( 'gallery' ).collection.add( attachment );
+				browse.get( 'selection' ).collection.add( attachment );
+
+				browse.get( 'insert' ).collection.remove( attachment );
+				browse.get( 'insert' ).collection.unshift( attachment );
+
+				// This will trigger all mutation observer
+				wp.Uploader.queue.add( attachment );
+				wp.Uploader.queue.remove( attachment );
+
+				browse.get( 'insert' ).$( 'li:first .thumbnail' ).click();
+			} );
+		}
+	} );
 };
 
 module.exports = ProviderToolbar;

@@ -2,14 +2,39 @@
 
 namespace ImageCrate\Service;
 
+/**
+ * Class Getty_Images
+ *
+ * @package ImageCrate\Service
+ */
 class Getty_Images {
 
+	/**
+	 * API base URL
+	 *
+	 * @var string
+	 */
 	private $api_url;
 
+	/**
+	 * API key
+	 *
+	 * @var string
+	 */
 	private $api_key;
 
+	/**
+	 * API secret key
+	 *
+	 * @var string
+	 */
 	private $api_secret;
 
+	/**
+	 * API OAuth2 token
+	 *
+	 * @var string
+	 */
 	private $api_token;
 
 	public function __construct() {
@@ -44,8 +69,9 @@ class Getty_Images {
 			"?file_types=jpg" .
 			"&page={$page}" .
 			"&page_size={$posts_per_page}" .
-			"&phrase={$search_term}".
-			"&fields=detail_set,largest_downloads,max_dimensions",
+			"&phrase={$search_term}" .
+			"&sort_order=newest" .
+			"&fields=detail_set,largest_downloads,max_dimensions,date_submitted",
 			[
 				'timeout' => 10,
 				'headers' => array(
@@ -55,14 +81,29 @@ class Getty_Images {
 			]
 		);
 
-		if ( is_wp_error( $response ) ) {
-			// TODO: Add New Relic notice
+		$response_code = wp_remote_retrieve_response_code( $response );
 
-			$error_code = ( ! empty( $response->get_error_code() ) ? $response->get_error_code() : 500 );
-			return wp_send_json_error( $response->get_error_message(), $error_code );
+		if ( is_wp_error( $response ) ) {
+			return wp_send_json_error( $response->get_error_message(), 500 );
+		}
+
+		try {
+			if ( $response_code != '200' ) {
+				throw new \Exception( "{$response_code} response from Getty API" );
+			}
+		} catch ( \Exception $e ) {
+			if ( function_exists( 'newrelic_notice_error' ) ) {
+				newrelic_notice_error( $e );
+			}
+			error_log( $e );
 		}
 
 		$results = json_decode( $response['body'], true );
+
+		// If there are no image results return nothing
+		if ( ! isset( $results['images'] ) ) {
+			return [];
+		}
 
 		$images = [];
 
@@ -72,7 +113,7 @@ class Getty_Images {
 				'title'        => $image['title'],
 				'filename'     => $image['title'],
 				'caption'      => $image['caption'],
-				'description'  => '',
+				'description'  => $image['caption'],
 				'type'         => 'image',
 				'sizes'        => [
 					'thumbnail' => [
@@ -80,24 +121,59 @@ class Getty_Images {
 						'width'  => '150',
 						'height' => '150',
 					],
-//					'full'      => array(
-//						'url'    => $image['display_sizes'][0]['uri'],
-//						'width'  => '268',
-//						'height' => '162',
-//					),
-//					'large'     => array(
-//						'url'    => $image['display_sizes'][0]['uri'],
-//						'width'  => '3500',
-//						'height' => '2329',
-//					),
 				],
-				'url'        => $image['display_sizes'][0]['uri'],
+				'url'        => $image['largest_downloads'][0]['uri'],
 				'max_width'  => $image['max_dimensions']['width'],
 				'max_height' => $image['max_dimensions']['height'],
+				'date'       => strtotime( $image['date_submitted'] )
 			];
 		}
 
 		return $images;
+	}
+
+	/**
+	 * Get image download link for single image
+	 *
+	 * @param string $download_url API url for image download
+	 *
+	 * @return string
+	 */
+	public function download_single( $download_url ) {
+		$response = wp_remote_post(
+			$download_url .
+			"?auto_download=false",
+			[
+				'timeout' => 10,
+				'headers' => array(
+					'Api-Key'       => "$this->api_key",
+					'Authorization' => "Bearer $this->api_token",
+				),
+			]
+		);
+
+		$response_code = wp_remote_retrieve_response_code( $response );
+
+		if ( is_wp_error( $response ) ) {
+			return wp_send_json_error( $response->get_error_message(), 500  );
+		}
+
+		try {
+			if ( $response_code != '200' ) {
+				throw new \Exception(
+					"Error requesting single download from Getty API. Response code: {$response_code}"
+				);
+			}
+		} catch ( \Exception $e ) {
+			if ( function_exists( 'newrelic_notice_error' ) ) {
+				newrelic_notice_error( $e );
+			}
+			error_log( $e );
+		}
+
+		$results = json_decode( $response['body'], true );
+
+		return $results['uri'];
 	}
 
 	/**
@@ -118,11 +194,23 @@ class Getty_Images {
 			]
 		);
 
-		if ( is_wp_error( $response ) ) {
-			// TODO: Add New Relic notice
+		$response_code = wp_remote_retrieve_response_code( $response );
 
-			$error_code = ( ! empty( $response->get_error_code() ) ? $response->get_error_code() : 500 );
-			return wp_send_json_error( $response->get_error_message(), $error_code );
+		if ( is_wp_error( $response ) ) {
+			return wp_send_json_error( $response->get_error_message(), 500 );
+		}
+
+		try {
+			if ( $response_code != '200' ) {
+				throw new \Exception(
+					"Error getting access token from Getty API. Response code: {$response_code}"
+				);
+			}
+		} catch ( \Exception $e ) {
+			if ( function_exists( 'newrelic_notice_error' ) ) {
+				newrelic_notice_error( $e );
+			}
+			error_log( $e );
 		}
 
 		$body = json_decode( $response['body'], true );

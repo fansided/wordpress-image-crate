@@ -26,14 +26,7 @@ abstract class Provider {
 	 *
 	 * @return mixed
 	 */
-	abstract function download();
-
-	/**
-	 * Manipulate results to format WordPress expects
-	 *
-	 * @return mixed
-	 */
-	abstract function prepare_for_collection();
+	abstract function download( $query );
 
 	/**
 	 * Set the custom image directory to store images.

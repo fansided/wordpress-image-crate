@@ -1,36 +1,78 @@
-/**
- * wp.media.view.NoResults
- *
- * @augments wp.media.view.UploaderInline
- */
-var UploaderInline = wp.media.view.UploaderInline,
-    NoResults;
+var ImageCrateSearch = require( './search.js' );
 
-NoResults = UploaderInline.extend({
-    tagName: 'div',
-    className: 'image-crate-no-results uploader-inline',
-    template: wp.template('image-crate-no-results'),
+var NoResults = wp.media.View.extend( {
+	tagName: 'div',
+	className: 'no-results-found',
 
-    ready: function () {
-        var $browser = this.options.$browser,
-            $placeholder;
+	initialize: function() {
+		this.model.on( 'change', this.render, this );
+		this.collection.on( 'change add remove reset', _.debounce( this.render, 300 ), this );
 
-        if (this.controller.uploader) {
-            $placeholder = this.$('.browser');
+		if ( this.model.get( 'search' ) === undefined ) {
+			this.model.set( 'search', '' );
+		}
 
-            // Check if we've already replaced the placeholder.
-            if ($placeholder[0] === $browser[0]) {
-                return;
-            }
+		if ( this.model.get( 'searchActive' ) === undefined ) {
+			this.model.set( 'searchActive', false );
+		}
+	},
 
-            $browser.detach().text($placeholder.text());
-            $browser[0].className = 'browser button button-hero';
-            $placeholder.replaceWith($browser.show());
-        }
+	/**
+	 * @returns {wp.media.view.Search} Returns itself to allow chaining
+	 */
+	render: function() {
 
-        this.refresh();
-        return this;
-    }
-});
+		if ( !this.options.shouldRender ) {
+			jQuery( this.el ).remove();
+			return this;
+		}
+
+		jQuery( this.el ).empty();
+
+		if ( this.collection.length > 0 ) {
+			return this;
+		}
+
+		if ( !this.model.get( 'searchActive' ) ) {
+			var Search = new ImageCrateSearch( {
+				controller: this.controller,
+				model: this.collection.props
+			} ).render();
+
+			jQuery( this.el ).append(
+				jQuery(
+					'<div class="uploader-inline image-crate-no-results">' +
+					'<div class="uploader-inline-content">' +
+					'<h2 class="upload-message">Search for images</h2>' +
+					'</div>' +
+					'</div>'
+				)
+			)
+
+			jQuery( this.el ).find( '.uploader-inline-content' ).append(
+				Search.$el
+			)
+
+			setTimeout( function() {
+				jQuery( '.image-crate-no-results input:text' ).focus();
+			}, 200 )
+
+			return this;
+		}
+
+		jQuery( this.el ).append(
+			jQuery(
+				'<div class="uploader-inline image-crate-no-results">' +
+				'<div class="uploader-inline-content">' +
+				'<h2 class="upload-message">No images found. Try a different search.</h2>' +
+				'</div>' +
+				'</div>'
+			)
+		)
+
+		return this;
+	}
+
+} );
 
 module.exports = NoResults;
