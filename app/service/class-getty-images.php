@@ -78,6 +78,7 @@ class Getty_Images {
 					'Api-Key'       => "$this->api_key",
 					'Authorization' => "Bearer $this->api_token",
 				),
+				'wp-rest-cache' => 'exclude',
 			]
 		);
 
@@ -149,6 +150,7 @@ class Getty_Images {
 					'Api-Key'       => "$this->api_key",
 					'Authorization' => "Bearer $this->api_token",
 				),
+				'wp-rest-cache' => 'exclude',
 			]
 		);
 
@@ -186,6 +188,7 @@ class Getty_Images {
 				'method'  => 'POST',
 				'timeout' => 5,
 				'headers' => [ 'Content-Type: application/x-www-form-urlencoded' ],
+				'wp-rest-cache' => 'exclude',
 				'body'    => [
 					'grant_type'    => 'client_credentials',
 					'client_id'     => $this->api_key,
