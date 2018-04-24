@@ -207,15 +207,17 @@ class Usage_Tracking {
 		$usage = get_post_meta( $attachment_id, "{$provider}_usage", true );
 		$usage = $this->transform_legacy_getty_tracking( $usage );
 
-		// Increment attached amount
-		$usage['attached_amount'] = intval( $usage['attached_amount'] ) + 1;
-
-		// Add post ID to attached_to_posts
-
-		// Meta format: siteID_postID
+		// attached_to_posts meta format: siteID_postID
 		$attached_meta = $this->current_site_id . '_' . $post_id;
+
+		// Check if post is already connected to attachment
 		if ( ! in_array( $attached_meta, $usage['attached_to_posts'] ) ) {
+
+			// Add post ID to attached_to_posts
 			array_push( $usage['attached_to_posts'], $attached_meta );
+
+			// Increment attached amount
+			$usage['attached_amount'] = intval( $usage['attached_amount'] ) + 1;
 		}
 
 		update_post_meta( $attachment_id, "{$provider}_usage", $usage );

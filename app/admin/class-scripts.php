@@ -59,7 +59,7 @@ class Scripts {
 			'image-crate',
 			plugins_url('/wordpress-image-crate/app/assets/js/image-crate' . $suffix . '.js'),
 			array('media-views'),
-			'3.0.0',
+			IMAGE_CRATE_VERSION,
 			true
 		);
 
@@ -67,7 +67,7 @@ class Scripts {
 			'image-crate',
 			plugins_url('/wordpress-image-crate/app/assets/css/image-crate.css'),
 			[],
-			'3.0.0'
+			IMAGE_CRATE_VERSION
 		);
 
 		wp_localize_script(
