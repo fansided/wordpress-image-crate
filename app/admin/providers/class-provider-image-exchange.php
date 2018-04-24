@@ -6,11 +6,26 @@ namespace ImageCrate\Admin\Providers;
 class Provider_Image_Exchange extends Provider {
 
 	/**
+	 * The provider name
+	 */
+	const PROVIDER = 'image_exchange';
+
+	/**
+	 * If image provider should be tracked.
+	 */
+	const TRACKING = false;
+
+	/**
+	 * The directory images will be saved to.
+	 */
+	const CUSTOM_DIRECTORY = 'image-exchange';
+
+	/**
 	 * Retrieve image data from provider.
 	 *
 	 * @return mixed
 	 */
-	function fetch() {
+	function fetch( $query ) {
 		// TODO: Implement fetch() method.
 	}
 
@@ -19,7 +34,7 @@ class Provider_Image_Exchange extends Provider {
 	 *
 	 * @return mixed
 	 */
-	function download() {
+	function download( $query ) {
 		// TODO: Implement download() method.
 	}
 

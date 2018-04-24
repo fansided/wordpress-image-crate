@@ -13,6 +13,21 @@ use ImageCrate\Service\Getty_Images;
 class Provider_Getty_Images extends Provider {
 
 	/**
+	 * The provider name
+	 */
+	const PROVIDER = 'getty';
+	
+	/**
+	 * If image provider should be tracked.
+	 */
+	const TRACKING = true;
+
+	/**
+	 * The directory images will be saved to.
+	 */
+	const CUSTOM_DIRECTORY = 'getty-images';
+	
+	/**
 	 * The provider service
 	 *
 	 * @var Getty_Images
@@ -54,13 +69,18 @@ class Provider_Getty_Images extends Provider {
 	 */
 	public function download( $query ) {
 
-		$import       = new Import( true );
+		$import       = new Import( self::TRACKING );
 		$download_url = $query['download_url'];
 		$remote_id    = $query['id'];
 
 		$image_url = $this->service->download_single( $download_url );
 
-		$attachment = $import->image( $image_url, $remote_id, 'getty-images', 'getty' );
+		$attachment = $import->image(
+			$image_url,
+			$remote_id,
+			self::CUSTOM_DIRECTORY,
+			self::PROVIDER
+		);
 
 		if ( ! $attachment ) {
 			wp_send_json_error();

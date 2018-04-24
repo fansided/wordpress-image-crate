@@ -3,10 +3,10 @@
 namespace ImageCrate\Admin;
 
 /**
- * Class Tracking
+ * Class Download_Tracking
  * @package ImageCrate\Admin
  */
-class Tracking {
+class Download_Tracking {
 
 	/**
 	 * The attachment post from the current site
@@ -37,7 +37,7 @@ class Tracking {
 	private $current_site_id;
 
 	/**
-	 * Track image usage as post on master site
+	 * Track image downloads as post on master site
 	 *
 	 * @param \WP_Post $post_data The attachment from current site.
 	 * @param string   $provider  The image provider.

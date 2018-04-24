@@ -19,7 +19,7 @@ final class Import {
 	public $directory;
 
 	/**
-	 * @var Tracking The tracking class.
+	 * @var Download_Tracking The tracking class.
 	 */
 	private $tracking;
 
@@ -32,7 +32,7 @@ final class Import {
 	public function __construct( $tracked = false ) {
 
 		if ( $tracked ) {
-			$this->tracking = new Tracking();
+			$this->tracking = new Download_Tracking();
 		}
 
 	}

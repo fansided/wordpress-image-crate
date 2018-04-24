@@ -20,11 +20,14 @@ class Admin_Init {
 	 */
 	public static function run() {
 		Scripts::setup();
+		$usage_tracking = new Usage_Tracking();
 
 		add_action( 'admin_init', array( get_called_class(), 'register_fields' ) );
 		add_filter( 'plugin_action_links_wordpress-image-crate/image-crate.php', array( get_called_class(), 'add_action_links' ) );
 		add_action( 'wp_ajax_image_crate_get', array( get_called_class(), 'get' ) );
 		add_action( 'wp_ajax_image_crate_download', array( get_called_class(), 'download' ) );
+		add_action( 'publish_post', [ $usage_tracking, 'track' ], 10, 2 );
+
 	}
 
 	public static function get() {
