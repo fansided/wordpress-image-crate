@@ -13,7 +13,7 @@ class Usage_Tracking {
 	 */
 	const PROVIDER_CLASS_LIST = [
 		'Provider_Getty_Images',
-		'Provider_Image_Exchange'
+		'Provider_Image_Exchange',
 	];
 
 	/**
@@ -49,7 +49,8 @@ class Usage_Tracking {
 
 		$this->providers_to_track();
 
-		$image_occurrences = $this->image_occurrences( $post->post_content );
+		$featured_image    = get_the_post_thumbnail_url( $post_id );
+		$image_occurrences = $this->image_occurrences( $post->post_content, $featured_image );
 
 		$this->update_attachments_meta( $post_id, $image_occurrences );
 
@@ -77,13 +78,14 @@ class Usage_Tracking {
 	}
 
 	/**
-	 * Find uses of provider images in content HTML.
+	 * Find uses of provider images in content HTML and featured image url.
 	 *
-	 * @param string $content The post content
+	 * @param string $content        The post content
+	 * @param string $featured_image The post featured image url
 	 *
 	 * @return array
 	 */
-	private function image_occurrences( $content ) {
+	private function image_occurrences( $content, $featured_image = '' ) {
 
 		$providers_dirs = array_keys( $this->providers );
 
@@ -106,11 +108,25 @@ class Usage_Tracking {
 			}
 		}
 
+		// Check the featured image
+		preg_match( $search_pattern, $featured_image, $provider_found_featured_image );
+
+		if ( isset( $provider_found_featured_image[0] ) ) {
+			preg_match(
+				'/(\/' . $provider_found_featured_image[0] . '\/)(\d+\/)(\d+\/)(\d+)/',
+				$featured_image,
+				$filename
+			);
+
+			// outputs array, format: [ 'name' => 74564352, 'provider' => 'getty-images' ]
+			$filenames[] = [ 'name' => $filename[4], 'provider' => $provider_found_featured_image[0] ];
+		}
+
 		if ( ! isset( $filenames ) ) {
 			return [];
 		}
 
-		// Make sure duplicate file names are removed before sending
+		// Make sure duplicate file names are removed before returning
 		return array_intersect_key( $filenames, array_unique( array_map( 'serialize', $filenames ) ) );
 
 	}
