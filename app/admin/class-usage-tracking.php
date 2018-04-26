@@ -101,7 +101,7 @@ class Usage_Tracking {
 			preg_match( $search_pattern, $src, $provider_found );
 
 			if ( isset( $provider_found[0] ) ) {
-				preg_match( '/(\/' . $provider_found[0] . '\/)(\d+\/)(\d+\/)(\d+)/', $src, $filename );
+				preg_match( '/(\/' . $provider_found[0] . '\/)(\d+\/)(\d+\/)(\w+)/', $src, $filename );
 
 				// outputs array, format: [ 'name' => 74564352, 'provider' => 'getty-images' ]
 				$filenames[] = [ 'name' => $filename[4], 'provider' => $provider_found[0] ];

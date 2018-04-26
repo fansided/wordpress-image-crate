@@ -19,8 +19,16 @@
 	display: inline-block;
 }
 
+.media-toolbar-secondary .ic-search-form.hidden {
+	display: none;
+}
+
 .image-crate.attachments-browser .spinner {
 	float: none;
 	margin-top: -4px;
 	margin-left: 10px;
+}
+
+.image-exchange.image-crate.attachments-browser .spinner {
+	margin-top: 8px;
 }

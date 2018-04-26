@@ -14,6 +14,7 @@ var ImageCrateSearch = wp.media.View.extend( {
 	},
 
 	initialize: function() {
+
 		if ( this.model.get( 'search' ) === undefined ) {
 			this.model.set( 'search', '' );
 		}

@@ -3,6 +3,9 @@
 namespace ImageCrate\Admin\Providers;
 
 
+use ImageCrate\Admin\Import;
+use ImageCrate\Service\Image_Exchange;
+
 class Provider_Image_Exchange extends Provider {
 
 	/**
@@ -13,7 +16,7 @@ class Provider_Image_Exchange extends Provider {
 	/**
 	 * If image provider should be tracked.
 	 */
-	const TRACKING = false;
+	const TRACKING = true;
 
 	/**
 	 * The directory images will be saved to.
@@ -21,12 +24,36 @@ class Provider_Image_Exchange extends Provider {
 	const CUSTOM_DIRECTORY = 'image-exchange';
 
 	/**
+	 * The provider service
+	 *
+	 * @var Image_Exchange
+	 */
+	private $service;
+
+	/**
+	 * Provider_Getty_Images constructor.
+	 */
+	public function __construct() {
+		$this->service = new Image_Exchange();
+	}
+
+	/**
 	 * Retrieve image data from provider.
 	 *
-	 * @return mixed
+	 * @param array $query Data passed from client
+	 *
+	 * @return array
 	 */
-	function fetch( $query ) {
-		// TODO: Implement fetch() method.
+	public function fetch( $query ) {
+
+		$vertical       = ( ! empty ( $query['vertical'] ) ? strtolower( $query['vertical'] ) : '' );
+		$paged          = ( ! empty ( $query['paged'] ) ? intval( $query['paged'] ) : 1 );
+		$posts_per_page = ( ! empty ( $query['posts_per_page'] ) ? intval( $query['posts_per_page'] ) : 40 );
+
+		$images = $this->service->fetch( $vertical, $paged, $posts_per_page );
+
+		return $images;
+
 	}
 
 	/**
@@ -34,17 +61,31 @@ class Provider_Image_Exchange extends Provider {
 	 *
 	 * @return mixed
 	 */
-	function download( $query ) {
-		// TODO: Implement download() method.
-	}
+	public function download( $query ) {
 
-	/**
-	 * Manipulate results to format WordPress expects
-	 *
-	 * @return mixed
-	 */
-	function prepare_for_collection() {
-		// TODO: Implement prepare_for_collection() method.
+		$import    = new Import( self::TRACKING );
+		$image_url = $query['download_url'];
+		$remote_id = 'ie_' . $query['id'];
+
+		$attachment = $import->image(
+			$image_url,
+			$remote_id,
+			self::CUSTOM_DIRECTORY,
+			self::PROVIDER
+		);
+
+		if ( ! $attachment ) {
+			wp_send_json_error();
+		}
+
+		$attachment_prepared = wp_prepare_attachment_for_js( $attachment );
+
+		if ( ! $attachment_prepared ) {
+			wp_send_json_error();
+		}
+
+		return $attachment_prepared;
+
 	}
 
 }

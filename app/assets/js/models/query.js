@@ -24,7 +24,9 @@ var ProviderQuery = wp.media.model.Query.extend( {
 
 			// Bail if search term is not provided
 			if ( _.isUndefined( options.args.search ) || _.isEmpty( options.args.search ) ) {
-				return false;
+				if ( options.args.waitForSearch ) {
+					return false;
+				}
 			}
 
 			options = options || {};

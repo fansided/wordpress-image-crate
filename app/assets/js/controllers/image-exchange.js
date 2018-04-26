@@ -22,6 +22,9 @@ ImageExchangeController = Library.extend({
         router: 'image-provider',
         toolbar: 'image-provider',
         button: 'Download FanSided Image',
+        searchable: false,
+        verticalFilter: true,
+        waitForSearch: false,
 
         /**
          * Any data that needs to be passed from this controller via ajax, should be passed with this object.

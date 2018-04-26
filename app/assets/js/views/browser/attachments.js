@@ -6,6 +6,7 @@
  */
 var ImageCrateSearch = require( './search.js' ),
 	NoResults = require( './no-results.js' ),
+	NoResultsSearch = require( './no-results-search.js' ),
 	VerticalsFilter = require( './verticals-filter.js' ),
 	coreAttachmentsInitialize = wp.media.view.AttachmentsBrowser.prototype.initialize,
 	ProviderPhotosBrowser;
@@ -17,6 +18,8 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend( {
 
 		this.createToolBar();
 		this.createUploader( true );
+
+		this.collection.props.set( 'waitForSearch', this.model.get( 'waitForSearch' ) );
 	},
 
 	updateContent: function() {
@@ -27,14 +30,17 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend( {
 
 		if ( !this.collection.length ) {
 			this.toolbar.get( 'spinner' ).show();
-			noItemsView.$el.hide();
-			this.toolbar.get( 'search' ).$el.show();
+			noItemsView.$el.addClass( 'hidden' );
+
+			if ( this.toolbar.get( 'search' ) ) {
+				this.toolbar.get( 'search' ).$el.addClass( 'hidden' );
+			}
 
 			this.dfd = this.collection.more().done( function() {
 				if ( !view.collection.length ) {
-					noItemsView.$el.show();
+					noItemsView.$el.removeClass( 'hidden' );
 				} else {
-					noItemsView.$el.hide();
+					noItemsView.$el.addClass( 'hidden' );
 				}
 				view.toolbar.get( 'spinner' ).hide();
 			} );
@@ -42,6 +48,11 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend( {
 		} else {
 			noItemsView.$el.addClass( 'hidden' );
 			view.toolbar.get( 'spinner' ).hide();
+		}
+
+		if ( this.model.get( 'searchable' ) &&
+			this.collection.props.get( 'searchActive' ) ) {
+			this.toolbar.get( 'search' ).$el.removeClass( 'hidden' );
 		}
 	},
 
@@ -52,37 +63,45 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend( {
 	 * new values to the backend via an ajax call.
 	 */
 	createToolBar: function() {
-		// Labels are display visually, but they are rendered for accessibility.
-		// this.toolbar.set( 'VerticalsFilterLabel', new wp.media.view.Label( {
-		// 	value: 'Verticals Label',
-		// 	attributes: {
-		// 		'for': 'media-attachment-vertical-filters'
-		// 	},
-		// 	priority: -75
-		// } ).render() );
-		//
-		// this.toolbar.set( 'VerticalsFilter', new VerticalsFilter( {
-		// 	controller: this.controller,
-		// 	model: this.collection.props,
-		// 	priority: -75
-		// } ).render() );
 
 		var model =  this.collection.props;
+
+		if ( this.model.get( 'verticalFilter') ) {
+
+			// Labels are display visually, but they are rendered for accessibility.
+			this.toolbar.set( 'VerticalsFilterLabel', new wp.media.view.Label( {
+				value: 'Verticals Label',
+				attributes: {
+					'for': 'media-attachment-vertical-filters'
+				},
+				priority: -75
+			} ).render() );
+
+			this.toolbar.set( 'VerticalsFilter', new VerticalsFilter( {
+				controller: this.controller,
+				model: this.collection.props,
+				priority: -75
+			} ).render() );
+
+		}
 
 		this.toolbar.unset( 'dateFilterLabel', {} );
 		this.toolbar.unset( 'dateFilter', {} );
 		this.toolbar.unset( 'search', {} );
 
-		this.toolbar.set( 'search', new ImageCrateSearch( {
-			controller: this.controller,
-			model: this.collection.props,
-			priority: -70
-		} ).render() );
+		if ( this.model.get( 'searchable' ) ) {
+			this.toolbar.set( 'search', new ImageCrateSearch( {
+				controller: this.controller,
+				model: this.collection.props,
+				searchable: this.model.get( 'searchable' ),
+				priority: -70
+			} ).render() );
+		}
 
 		this.views.add( this.toolbar );
 
-		if ( !this.collection.length && ! model.get( 'searchActive' ) ) {
-			this.toolbar.get( 'search' ).$el.hide();
+		if ( this.model.get( 'searchable' ) && ! this.collection.length && ! model.get( 'searchActive' ) ) {
+			this.toolbar.get( 'search' ).$el.addClass( 'hidden' );
 		}
 	},
 
@@ -92,12 +111,22 @@ ProviderPhotosBrowser = wp.media.view.AttachmentsBrowser.extend( {
 	createUploader: function( render ) {
 		var shouldRender = ( !_.isUndefined( render ) );
 
-		this.uploader = new NoResults( {
-			controller: this.controller,
-			model: this.collection.props,
-			collection: this.collection,
-			shouldRender: shouldRender
-		} );
+		if ( this.model.get( 'searchable' ) ) {
+			this.uploader = new NoResultsSearch( {
+				controller: this.controller,
+				model: this.collection.props,
+				collection: this.collection,
+				shouldRender: shouldRender
+			} );
+		} else {
+			this.uploader = new NoResults( {
+				controller: this.controller,
+				model: this.collection.props,
+				collection: this.collection
+			} );
+		}
+
+		this.uploader.$el.addClass( 'hidden' );
 
 		this.views.add( this.uploader );
 	}
