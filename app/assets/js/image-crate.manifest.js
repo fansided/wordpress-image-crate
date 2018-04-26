@@ -14,7 +14,7 @@
 		var corePost = wp.media.view.MediaFrame.Post;
 
 		// Controllers
-		imagecrate.ImageExchangeController = require('./controllers/image-exchange.js');
+		// imagecrate.ImageExchangeController = require('./controllers/image-exchange.js');
 		imagecrate.GettyImagesController = require('./controllers/getty-images.js');
 
 		// Attachment Models
@@ -41,8 +41,8 @@
                  * Adding states adds menu items to the left menu on the media modal.
                  */
 				this.states.add([
-					new imagecrate.GettyImagesController,
-					new imagecrate.ImageExchangeController
+					new imagecrate.GettyImagesController
+					// new imagecrate.ImageExchangeController
 				]);
 			},
 

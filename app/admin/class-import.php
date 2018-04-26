@@ -96,8 +96,12 @@ final class Import {
 		$file_name          = basename( $api_image, '.' . $image_type['extension'] );
 		$file_array['name'] = str_replace( $file_name, $post_name, $api_image );
 
+		add_filter( 'wp_insert_attachment_data', [ $this, 'save_image_caption' ] );
+
 		// Do the validation and storage stuff
 		$id = media_handle_sideload( $file_array, 0, null, [ 'post_name' => $remote_id ] );
+
+		remove_filter( 'wp_insert_attachment_data', [ $this, 'save_image_caption'] );
 
 		$this->delete_file( $file_array['tmp_name'] );
 
@@ -244,4 +248,18 @@ final class Import {
 
 		return $upload;
 	}
+
+	/**
+	 * Add an image caption to the attachment post.
+	 *
+	 * @param array $data The post data to be inserted as attachment
+	 *
+	 * @return array
+	 */
+	public function save_image_caption( $data ) {
+		$data['post_excerpt'] = ( $data['post_content'] ? $data['post_content'] : '' );
+
+		return $data;
+	}
+
 }
