@@ -45,8 +45,11 @@ class Imagn {
 			return [];
 		}
 
+		$offset = ($page - 1) * $posts_per_page;
+
 		$request_url = "{$this->api_url}/rest/search/" .
 		               "?limit={$posts_per_page}" .
+                       "&offset={$offset}" .
 		               "&terms={$search_term}";
 
 		$request_url = str_replace( ' ', '%20', $request_url );
@@ -94,7 +97,7 @@ class Imagn {
 
 		foreach ( $results as $image ) {
 			$images[] = [
-				'id'          => $image[0]['imgId'],
+				'id'          => strval($image[0]['imgId']),
 				'title'       => $image[0]['headline'],
 				'filename'    => $image[0]['headline'],
 				'caption'     => $image[0]['caption'],
@@ -108,8 +111,8 @@ class Imagn {
 					],
 				],
 				'url'         => $image[0]['fullUrl'],
-				'max_width'   => $image[0]['width'],
-				'max_height'  => $image[0]['height'],
+				'max_width'   => (int)$image[0]['width'],
+				'max_height'  => (int)$image[0]['height'],
 				'date'        => strtotime( $image[0]['dateCreate'] )
 			];
 		}
