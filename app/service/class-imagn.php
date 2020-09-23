@@ -17,47 +17,16 @@ class Imagn {
 	private $api_url;
 
 	/**
-	 * API key
-	 *
-	 * @var string
-	 */
-	private $api_key;
-
-	/**
-	 * API secret key
-	 *
-	 * @var string
-	 */
-	private $api_secret;
-
-	/**
 	 * API OAuth2 token
 	 *
 	 * @var string
 	 */
 	private $api_token;
 
-	/**
-	 * If site has premium access.
-	 *
-	 * @var string
-	 */
-	private $access_type;
-
 	public function __construct() {
-
-//		if ( defined( 'IMAGN_API_KEY' ) ) {
-//			$this->api_key = IMAGN_API_KEY;
-//		}
-//
-//		if ( defined( 'IMAGN_CLIENT_SECRET' ) ) {
-//			$this->api_secret = IMAGN_CLIENT_SECRET;
-//		}
-
 		$this->api_url = 'https://imagn.com';
 
 		$this->get_access_token();
-
 	}
 
 	/**
@@ -77,13 +46,8 @@ class Imagn {
 		}
 
 		$request_url = "{$this->api_url}/rest/search/" .
-//		               "?file_types=jpg" .
-//		               "?offset={$page}" .
 		               "?limit={$posts_per_page}" .
 		               "&terms={$search_term}";
-//		               "&sort_order=newest" .
-//		               "&product_types={$this->access_type}" .
-//		               "&fields=detail_set,largest_downloads,max_dimensions,date_submitted";
 
 		$request_url = str_replace( ' ', '%20', $request_url );
 
@@ -92,7 +56,6 @@ class Imagn {
 			[
 				'timeout'       => 10,
 				'headers'       => [
-//					'Api-Key'       => "$this->api_key",
 					'Authorization' => "Bearer $this->api_token",
 				],
 				'wp-rest-cache' => 'exclude',
@@ -126,7 +89,6 @@ class Imagn {
 		}
 
 		$results = $results['response']['payload']['results']['item'];
-//		$results = $results['item'];
 
 		$images = [];
 
@@ -163,92 +125,28 @@ class Imagn {
 	 * @return string
 	 */
 	public function download_single( $imgId ) {
+	    $image_url = 'https://imagn.com/rest/download/?imageID=' . $imgId;
 
-	    return 'https://imagn.com/rest/download/?imageID=' . $imgId;
-//
-//	    $request_url = $download_url .
-//                       "?auto_download=false" .
-//                       "&product_type={$this->access_type}";
-//
+        // Adds auth headers to download url request
+        add_filter('http_request_args', function ($r, $url) use ($image_url) {
+            if ($image_url !== $url) {
+                return $r;
+            }
 
-//		$response = wp_remote_get(
-//            $request_url,
-//			[
-//				'timeout'       => 10,
-//				'headers'       => [
-////					'Api-Key'       => "$this->api_key",
-//					'Authorization' => "Bearer $this->api_token",
-//				],
-//				'wp-rest-cache' => 'exclude',
-//			]
-//		);
-//
-//		$response_code = wp_remote_retrieve_response_code( $response );
-//
-//		if ( is_wp_error( $response ) ) {
-//			return wp_send_json_error( $response->get_error_message(), 500 );
-//		}
-//
-//		try {
-//			if ( $response_code != '200' ) {
-//				throw new \Exception(
-//					"Error requesting single download from Imagn API." .
-//					"Response code: {$response_code} - Request URL: {$request_url}"
-//				);
-//			}
-//		} catch ( \Exception $e ) {
-//			if ( function_exists( 'newrelic_notice_error' ) ) {
-//				newrelic_notice_error( $e );
-//			}
-//			error_log( $e );
-//		}
-//
-//		$results = json_decode( $response['body'], true );
-//
-//		return $results['uri'];
+            $r['headers']['Authorization'] = "Bearer $this->api_token";
+
+            return $r;
+        }, 10, 2);
+
+	    return $image_url;
 	}
 
 	/**
 	 * Get OAuth2 token from Getty Images
 	 */
 	private function get_access_token() {
-//		$response = wp_remote_post(
-//			"{$this->api_url}/oauth2/token",
-//			[
-//				'method'        => 'POST',
-//				'timeout'       => 5,
-//				'headers'       => [ 'Content-Type: application/x-www-form-urlencoded' ],
-//				'wp-rest-cache' => 'exclude',
-//				'body'          => [
-//					'grant_type'    => 'client_credentials',
-//					'client_id'     => $this->api_key,
-//					'client_secret' => $this->api_secret,
-//				],
-//			]
-//		);
-//
-//		$response_code = wp_remote_retrieve_response_code( $response );
-//
-//		if ( is_wp_error( $response ) ) {
-//			return wp_send_json_error( $response->get_error_message(), 500 );
-//		}
-//
-//		try {
-//			if ( $response_code != '200' ) {
-//				throw new \Exception(
-//					"Error getting access token from Imagn API. Response code: {$response_code}"
-//				);
-//			}
-//		} catch ( \Exception $e ) {
-//			if ( function_exists( 'newrelic_notice_error' ) ) {
-//				newrelic_notice_error( $e );
-//			}
-//			error_log( $e );
-//		}
-//
-//		$body = json_decode( $response['body'], true );
-//
-//		$this->api_token = $body['access_token'];
-        $this->api_token = 'ad7828416dc69b4713e83bdad8805724fcbbf580';
+	    if (defined('IMAGN_API_TOKEN')) {
+	        $this->api_token = IMAGN_API_TOKEN;
+        }
 	}
 }

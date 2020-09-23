@@ -70,7 +70,6 @@ class Provider_Imagn extends Provider {
 	public function download( $query ) {
 
 		$import       = new Import( self::TRACKING );
-//		$download_url = $query['download_url'];
 		$remote_id    = $query['id'];
 
 		$image_url = $this->service->download_single( $remote_id );
